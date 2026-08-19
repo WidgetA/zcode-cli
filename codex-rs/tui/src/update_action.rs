@@ -17,8 +17,14 @@ pub enum UpdateAction {
     /// Update via `brew upgrade codex`.
     BrewUpgrade,
     /// Update via `curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh`.
+    ///
+    /// zcode-cli fork: not offered automatically, since the upstream installer
+    /// would replace zcode with the upstream Codex CLI; standalone installs are
+    /// directed to the zcode-cli GitHub releases page instead.
     StandaloneUnix,
     /// Update via `$env:CODEX_NON_INTERACTIVE=1; irm https://chatgpt.com/codex/install.ps1 | iex`.
+    ///
+    /// See [`UpdateAction::StandaloneUnix`] for why this is not offered.
     StandaloneWindows,
 }
 
@@ -30,10 +36,10 @@ impl UpdateAction {
             InstallMethod::Bun => Some(UpdateAction::BunGlobalLatest),
             InstallMethod::Pnpm => Some(UpdateAction::PnpmGlobalLatest),
             InstallMethod::Brew => Some(UpdateAction::BrewUpgrade),
-            InstallMethod::Standalone { platform, .. } => Some(match platform {
-                StandalonePlatform::Unix => UpdateAction::StandaloneUnix,
-                StandalonePlatform::Windows => UpdateAction::StandaloneWindows,
-            }),
+            // zcode-cli fork: standalone installs should not self-update via
+            // the upstream Codex installer; direct them to the zcode-cli
+            // releases page instead (no update action).
+            InstallMethod::Standalone { .. } => None,
             InstallMethod::Other => None,
         }
     }
@@ -133,7 +139,9 @@ mod tests {
                 },
                 package_layout: None,
             }),
-            Some(UpdateAction::StandaloneUnix)
+            // zcode-cli fork: standalone installs do not self-update via the
+            // upstream Codex installer.
+            None
         );
         assert_eq!(
             UpdateAction::from_install_context(&InstallContext {
@@ -144,7 +152,7 @@ mod tests {
                 },
                 package_layout: None,
             }),
-            Some(UpdateAction::StandaloneWindows)
+            None
         );
     }
 

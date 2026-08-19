@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($Release)) {
 }
 
 $NonInteractive = $env:CODEX_NON_INTERACTIVE -match "^(?i:1|true|yes)$"
-$DefaultPreferReleasesOpenAICom = $true
+$DefaultPreferReleasesOpenAICom = $false
 $PreferReleasesOpenAICom = if ([string]::IsNullOrWhiteSpace($env:CODEX_INSTALLER_USE_RELEASES_OPENAI_COM)) {
     $DefaultPreferReleasesOpenAICom
 } else {
@@ -172,9 +172,9 @@ function Resolve-ReleaseAssetSelection {
     $checksumFallbackUrl = $null
     if ($ResolvedRelease.Source -eq "ReleasesOpenAICom") {
         $packageUrl = "$ReleasesBaseUri/releases/$version/$packageAsset"
-        $packageFallbackUrl = "https://github.com/openai/codex/releases/download/rust-v$version/$packageAsset"
+        $packageFallbackUrl = "https://github.com/WidgetA/zcode-cli/releases/download/rust-v$version/$packageAsset"
         $checksumUrl = "$ReleasesBaseUri/releases/$version/$checksumAsset"
-        $checksumFallbackUrl = "https://github.com/openai/codex/releases/download/rust-v$version/$checksumAsset"
+        $checksumFallbackUrl = "https://github.com/WidgetA/zcode-cli/releases/download/rust-v$version/$checksumAsset"
     }
 
     $packageMetadata = Find-ReleaseAssetMetadata -AssetName $packageAsset -ReleaseMetadata $releaseMetadata -Url $packageUrl -FallbackUrl $packageFallbackUrl
@@ -193,7 +193,7 @@ function Resolve-ReleaseAssetSelection {
     $packageFallbackUrl = $null
     if ($ResolvedRelease.Source -eq "ReleasesOpenAICom") {
         $packageUrl = "$ReleasesBaseUri/releases/$version/$packageAsset"
-        $packageFallbackUrl = "https://github.com/openai/codex/releases/download/rust-v$version/$packageAsset"
+        $packageFallbackUrl = "https://github.com/WidgetA/zcode-cli/releases/download/rust-v$version/$packageAsset"
     }
     $packageMetadata = Find-ReleaseAssetMetadata -AssetName $packageAsset -ReleaseMetadata $releaseMetadata -Url $packageUrl -FallbackUrl $packageFallbackUrl
     if ($null -eq $packageMetadata) {
@@ -332,11 +332,11 @@ function Resolve-ReleaseFromGitHub {
 
     if ($NormalizedVersion -eq "latest") {
         $requestedRelease = "latest"
-        $metadataUri = "https://api.github.com/repos/openai/codex/releases/latest"
+        $metadataUri = "https://api.github.com/repos/WidgetA/zcode-cli/releases/latest"
     } else {
         $resolvedVersion = $NormalizedVersion
         $requestedRelease = $resolvedVersion
-        $metadataUri = "https://api.github.com/repos/openai/codex/releases/tags/rust-v$resolvedVersion"
+        $metadataUri = "https://api.github.com/repos/WidgetA/zcode-cli/releases/tags/rust-v$resolvedVersion"
     }
 
     try {

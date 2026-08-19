@@ -108,6 +108,15 @@ pub(crate) async fn mount_analytics_capture(server: &MockServer, codex_home: &Pa
         .mount(server)
         .await;
 
+    // zcode-cli fork: analytics events are opt-in (`[analytics] enabled = true`),
+    // so tests that capture analytics must opt in explicitly.
+    let config_path = codex_home.join("config.toml");
+    let config = std::fs::read_to_string(&config_path)?;
+    std::fs::write(
+        config_path,
+        format!("{config}\n[analytics]\nenabled = true\n"),
+    )?;
+
     write_chatgpt_auth(
         codex_home,
         ChatGptAuthFixture::new("chatgpt-token")

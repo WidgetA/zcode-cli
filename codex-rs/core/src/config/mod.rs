@@ -1030,7 +1030,8 @@ pub struct Config {
     pub analytics_enabled: Option<bool>,
 
     /// When `false`, disables feedback collection across Codex product surfaces.
-    /// Defaults to `true`.
+    /// Defaults to `false` in zcode-cli (no upstream feedback endpoint); set
+    /// `feedback.enabled = true` to opt in.
     pub feedback_enabled: bool,
 
     /// Configured discoverable tools for tool suggestions.
@@ -4172,7 +4173,9 @@ impl Config {
                 .feedback
                 .as_ref()
                 .and_then(|feedback| feedback.enabled)
-                .unwrap_or(true),
+                // zcode-cli fork: feedback uploads target OpenAI's Sentry, so
+                // they are opt-in rather than on by default.
+                .unwrap_or(false),
             tool_suggest,
             tui_notifications: cfg
                 .tui

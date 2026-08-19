@@ -31,19 +31,19 @@ def _resolve_codex_cmd() -> List[str]:
     if cargo_target:
         cargo_base = Path(cargo_target)
         candidates.extend([
-            cargo_base / "debug" / "codex.exe",
-            cargo_base / "release" / "codex.exe",
+            cargo_base / "debug" / "zcode.exe",
+            cargo_base / "release" / "zcode.exe",
         ])
 
     for candidate in candidates:
         if candidate.exists():
             return [str(candidate)]
 
-    if shutil.which("codex"):
-        return ["codex"]
+    if shutil.which("zcode"):
+        return ["zcode"]
 
     raise FileNotFoundError(
-        "Codex CLI not found. Build it first, e.g.\n"
+        "zcode CLI not found. Build it first, e.g.\n"
         "  cargo build -p codex-cli --release\n"
         "or for debug:\n"
         "  cargo build -p codex-cli\n"

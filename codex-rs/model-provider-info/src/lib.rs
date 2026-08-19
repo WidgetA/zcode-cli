@@ -297,6 +297,17 @@ impl ModelProviderInfo {
                 let api_key = std::env::var(env_key)
                     .ok()
                     .filter(|v| !v.trim().is_empty())
+                    // zcode-cli fork: allow `ZCODE_API_KEY` as an alias for the
+                    // GLM provider key (`ZHIPU_API_KEY`).
+                    .or_else(|| {
+                        (env_key == GLM_API_KEY_ENV_VAR)
+                            .then(|| {
+                                std::env::var("ZCODE_API_KEY")
+                                    .ok()
+                                    .filter(|v| !v.trim().is_empty())
+                            })
+                            .flatten()
+                    })
                     .ok_or_else(|| {
                         CodexErr::EnvVar(EnvVarError {
                             var: env_key.clone(),
@@ -424,7 +435,7 @@ impl ModelProviderInfo {
             base_url: Some(GLM_DEFAULT_BASE_URL.to_string()),
             env_key: Some(GLM_API_KEY_ENV_VAR.to_string()),
             env_key_instructions: Some(
-                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY environment variable.".to_string(),
+                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY (or ZCODE_API_KEY) environment variable.".to_string(),
             ),
             experimental_bearer_token: None,
             auth: None,

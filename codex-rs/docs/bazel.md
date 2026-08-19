@@ -127,7 +127,7 @@ To exercise the generic remote configuration with your key:
 ```bash
 BUILDBUDDY_API_KEY=... GITHUB_REPOSITORY=my-fork/codex \
   ./.github/scripts/run_bazel_with_buildbuddy.py \
-  build --config=ci-linux //codex-rs/cli:codex
+  build --config=ci-linux //codex-rs/cli:zcode
 ```
 
 The wrapper selects the OpenAI host only inside GitHub Actions for a trusted

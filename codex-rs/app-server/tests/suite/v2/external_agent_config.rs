@@ -2634,6 +2634,6 @@ async fn external_agent_config_import_compacts_huge_session_before_first_follow_
 fn write_analytics_config(codex_home: &std::path::Path, base_url: &str) -> std::io::Result<()> {
     std::fs::write(
         codex_home.join("config.toml"),
-        format!("chatgpt_base_url = \"{base_url}\"\n"),
+        format!("chatgpt_base_url = \"{base_url}\"\n\n[analytics]\nenabled = true\n"),
     )
 }

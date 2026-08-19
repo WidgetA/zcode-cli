@@ -4,7 +4,7 @@ set -eu
 
 RELEASE="${CODEX_RELEASE:-latest}"
 NON_INTERACTIVE="${CODEX_NON_INTERACTIVE:-false}"
-DEFAULT_PREFER_RELEASES_OPENAI_COM="true"
+DEFAULT_PREFER_RELEASES_OPENAI_COM="false"
 PREFER_RELEASES_OPENAI_COM="${CODEX_INSTALLER_USE_RELEASES_OPENAI_COM:-$DEFAULT_PREFER_RELEASES_OPENAI_COM}"
 RELEASES_BASE_URL="https://releases.openai.com/codex"
 RELEASES_CONNECT_TIMEOUT=10
@@ -307,7 +307,7 @@ release_url_for_asset() {
   asset="$1"
   resolved_version="$2"
 
-  printf 'https://github.com/openai/codex/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
+  printf 'https://github.com/WidgetA/zcode-cli/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
 }
 
 releases_url_for_asset() {
@@ -320,7 +320,7 @@ releases_url_for_asset() {
 release_metadata_url() {
   resolved_version="$1"
 
-  printf 'https://api.github.com/repos/openai/codex/releases/tags/rust-v%s\n' "$resolved_version"
+  printf 'https://api.github.com/repos/WidgetA/zcode-cli/releases/tags/rust-v%s\n' "$resolved_version"
 }
 
 parse_downloaded_release_metadata() {
@@ -349,7 +349,7 @@ resolve_release_from_github() {
   normalized_version="$1"
   if [ "$normalized_version" = "latest" ]; then
     requested_release="latest"
-    metadata_url="https://api.github.com/repos/openai/codex/releases/latest"
+    metadata_url="https://api.github.com/repos/WidgetA/zcode-cli/releases/latest"
   else
     resolved_version="$normalized_version"
     requested_release="$resolved_version"
