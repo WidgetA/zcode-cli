@@ -5,7 +5,7 @@ expression: sanitized
 /status
 
 ╭─────────────────────────────────────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.0.0)                                                   │
+│  >_ OpenAI Codex (v0.1.0)                                                   │
 │                                                                             │
 │  Model:            gpt-5.1-codex (reasoning none, summaries auto)           │
 │  Model provider:   GLM (Zhipu)                                              │

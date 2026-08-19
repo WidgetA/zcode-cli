@@ -1,3 +1,19 @@
+# zcode-cli (fork of openai/codex)
+
+This repository is a fork of `openai/codex` whose default model provider is
+Zhipu GLM (`glm`, https://open.bigmodel.cn/api/v1, env keys `ZHIPU_API_KEY` /
+`ZCODE_API_KEY`). Keep these fork invariants when making changes:
+
+- The default provider is `glm` with default model `glm-5.3`; the `openai`
+  provider must keep working when explicitly configured.
+- The CLI binary is `zcode`; config home resolves `ZCODE_HOME` → `CODEX_HOME`
+  → `~/.zcode` (existing `~/.codex` still respected).
+- Internal crate names stay `codex-*`; do not rename them (keeps upstream
+  rebases cheap). Only user-visible strings use the zcode brand.
+- Upstream `just`/Bazel workflows were removed; CI (`.github/workflows/ci.yml`)
+  uses plain cargo. References to `just` below describe upstream and may not
+  work in this fork.
+
 # Rust/codex-rs
 
 In the codex-rs folder where the rust code lives:

@@ -7,7 +7,7 @@ before:
 /status
 
 ╭─────────────────────────────────────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.0.0)                                                   │
+│  >_ OpenAI Codex (v0.1.0)                                                   │
 │                                                                             │
 │  Model:            gpt-5.1-codex-max (reasoning none, summaries auto)       │
 │  Model provider:   GLM (Zhipu)                                              │
@@ -39,7 +39,7 @@ after:
 /status
 
 ╭─────────────────────────────────────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.0.0)                                                   │
+│  >_ OpenAI Codex (v0.1.0)                                                   │
 │                                                                             │
 │  Model:            gpt-5.1-codex-max (reasoning none, summaries auto)       │
 │  Model provider:   GLM (Zhipu)                                              │

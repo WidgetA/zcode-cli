@@ -251,6 +251,10 @@ pub(super) fn assert_no_submit_op(op_rx: &mut tokio::sync::mpsc::UnboundedReceiv
 pub(crate) fn set_chatgpt_auth(chat: &mut ChatWidget) {
     chat.has_chatgpt_account = true;
     chat.has_codex_backend_auth = true;
+    // ChatGPT auth implies the OpenAI provider; the built-in default provider does
+    // not require OpenAI auth, so select it explicitly for these fixtures.
+    chat.config.model_provider_id = "openai".to_string();
+    chat.config.model_provider.requires_openai_auth = true;
     chat.model_catalog = test_model_catalog(&chat.config);
 }
 

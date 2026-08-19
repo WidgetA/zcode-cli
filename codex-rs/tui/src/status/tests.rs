@@ -357,6 +357,13 @@ async fn status_snapshot_includes_reasoning_details() {
 async fn status_snapshot_shows_chatgpt_plan_without_email() {
     let temp_home = TempDir::new().expect("temp home");
     write_models_cache(temp_home.path()).expect("write models cache");
+    // Select the built-in OpenAI provider on disk so both this config and the
+    // embedded app-server's config reload resolve a ChatGPT-auth provider.
+    std::fs::write(
+        temp_home.path().join("config.toml"),
+        "model_provider = \"openai\"\n",
+    )
+    .expect("write config.toml");
     let mut config = test_config(&temp_home).await;
     config.model = Some("gpt-5.1-codex-max".to_string());
     config.model_provider_id = "openai".to_string();
