@@ -1,0 +1,53 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: zcode-x86_64-pc-windows-msvc
+            bin: zcode.exe
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            asset: zcode-x86_64-unknown-linux-gnu
+            bin: zcode
+          - os: macos-14
+            target: aarch64-apple-darwin
+            asset: zcode-aarch64-apple-darwin
+            bin: zcode
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95.0"
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: codex-rs
+      - name: Build zcode
+        run: cargo build --release -p codex-cli --bin zcode --target ${{ matrix.target }}
+        working-directory: codex-rs
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "codex-rs/target/${{ matrix.target }}/release/${{ matrix.bin }}" dist/
+          cd dist
+          tar -czf "${{ matrix.asset }}.tar.gz" "${{ matrix.bin }}"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.asset }}.tar.gz
+          generate_release_notes: true
