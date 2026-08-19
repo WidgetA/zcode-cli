@@ -35,6 +35,10 @@ const OPENAI_PROVIDER_NAME: &str = "OpenAI";
 const OPENAI_ACTOR_AUTHORIZATION_HEADER: &str = "x-openai-actor-authorization";
 pub const OPENAI_PROVIDER_ID: &str = "openai";
 pub const CHATGPT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";
+const GLM_PROVIDER_NAME: &str = "GLM (Zhipu)";
+pub const GLM_PROVIDER_ID: &str = "glm";
+pub const GLM_DEFAULT_BASE_URL: &str = "https://open.bigmodel.cn/api/v1";
+pub const GLM_API_KEY_ENV_VAR: &str = "ZHIPU_API_KEY";
 const AMAZON_BEDROCK_PROVIDER_NAME: &str = "Amazon Bedrock";
 pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
 const AMAZON_BEDROCK_RUNTIME_PROVIDER_NAME: &str = "Amazon Bedrock Runtime";
@@ -414,6 +418,31 @@ impl ModelProviderInfo {
         provider
     }
 
+    pub fn create_glm_provider() -> ModelProviderInfo {
+        ModelProviderInfo {
+            name: GLM_PROVIDER_NAME.into(),
+            base_url: Some(GLM_DEFAULT_BASE_URL.to_string()),
+            env_key: Some(GLM_API_KEY_ENV_VAR.to_string()),
+            env_key_instructions: Some(
+                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY environment variable.".to_string(),
+            ),
+            experimental_bearer_token: None,
+            auth: None,
+            aws: None,
+            wire_api: WireApi::Responses,
+            query_params: None,
+            http_headers: None,
+            env_http_headers: None,
+            request_max_retries: None,
+            stream_max_retries: None,
+            stream_idle_timeout_ms: None,
+            websocket_connect_timeout_ms: None,
+            requires_openai_auth: false,
+            supports_websockets: false,
+            supports_standalone_web_search: false,
+        }
+    }
+
     pub fn is_openai(&self) -> bool {
         self.name == OPENAI_PROVIDER_NAME
     }
@@ -431,6 +460,10 @@ impl ModelProviderInfo {
     pub fn is_amazon_bedrock(&self) -> bool {
         self.name == AMAZON_BEDROCK_PROVIDER_NAME
             || self.name == AMAZON_BEDROCK_RUNTIME_PROVIDER_NAME
+    }
+
+    pub fn is_glm(&self) -> bool {
+        self.name == GLM_PROVIDER_NAME
     }
 
     pub fn is_amazon_bedrock_runtime(&self) -> bool {
@@ -454,6 +487,7 @@ pub fn built_in_model_providers(
 ) -> HashMap<String, ModelProviderInfo> {
     use ModelProviderInfo as P;
     let openai_provider = P::create_openai_provider(openai_base_url);
+    let glm_provider = P::create_glm_provider();
     let amazon_bedrock_provider = P::create_amazon_bedrock_provider(/*aws*/ None);
     let amazon_bedrock_runtime_provider =
         P::create_amazon_bedrock_runtime_provider(/*aws*/ None);
@@ -463,6 +497,7 @@ pub fn built_in_model_providers(
     // open source ("oss") providers by default. Users are encouraged to add to
     // `model_providers` in config.toml to add their own providers.
     [
+        (GLM_PROVIDER_ID, glm_provider),
         (OPENAI_PROVIDER_ID, openai_provider),
         (AMAZON_BEDROCK_PROVIDER_ID, amazon_bedrock_provider),
         (

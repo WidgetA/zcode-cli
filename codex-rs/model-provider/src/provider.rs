@@ -26,6 +26,7 @@ use crate::auth::ResolvedProviderAuth;
 use crate::auth::auth_manager_for_provider;
 use crate::auth::resolve_provider_auth;
 use crate::auth::resolve_provider_auth_for_scope;
+use crate::glm;
 use crate::models_endpoint::OpenAiModelsEndpoint;
 
 /// Remote context-compaction protocols supported by a model provider.
@@ -317,6 +318,25 @@ impl ConfiguredModelProvider {
             auth_manager,
         }
     }
+
+    /// The GLM (Zhipu) endpoint does not expose a Codex-compatible `/models`
+    /// catalog, so the provider uses an authoritative static catalog bundled
+    /// with the binary instead of fetching one remotely.
+    fn glm_models_manager(
+        &self,
+        config_model_catalog: &Option<ModelsResponse>,
+    ) -> Option<SharedModelsManager> {
+        if !self.info.is_glm() {
+            return None;
+        }
+        let model_catalog = config_model_catalog
+            .clone()
+            .unwrap_or_else(glm::static_model_catalog);
+        Some(Arc::new(StaticModelsManager::new(
+            self.auth_manager.clone(),
+            model_catalog,
+        )))
+    }
 }
 
 impl ModelProvider for ConfiguredModelProvider {
@@ -420,6 +440,9 @@ impl ModelProvider for ConfiguredModelProvider {
         codex_home: PathBuf,
         config_model_catalog: Option<ModelsResponse>,
     ) -> SharedModelsManager {
+        if let Some(manager) = self.glm_models_manager(&config_model_catalog) {
+            return manager;
+        }
         match config_model_catalog {
             Some(model_catalog) => Arc::new(StaticModelsManager::new(
                 self.auth_manager.clone(),
@@ -443,6 +466,9 @@ impl ModelProvider for ConfiguredModelProvider {
         &self,
         config_model_catalog: Option<ModelsResponse>,
     ) -> SharedModelsManager {
+        if let Some(manager) = self.glm_models_manager(&config_model_catalog) {
+            return manager;
+        }
         match config_model_catalog {
             Some(model_catalog) => Arc::new(StaticModelsManager::new(
                 self.auth_manager.clone(),
@@ -466,6 +492,9 @@ impl ModelProvider for ConfiguredModelProvider {
         config_model_catalog: Option<ModelsResponse>,
         cache: Arc<dyn ModelsCache>,
     ) -> SharedModelsManager {
+        if let Some(manager) = self.glm_models_manager(&config_model_catalog) {
+            return manager;
+        }
         match config_model_catalog {
             Some(model_catalog) => Arc::new(StaticModelsManager::new(
                 self.auth_manager.clone(),
@@ -515,6 +544,7 @@ mod tests {
 
     use super::*;
     use crate::auth::AgentIdentitySessionFallback;
+    use crate::glm::GLM_DEFAULT_MODEL;
 
     fn provider_info_with_command_auth() -> ModelProviderInfo {
         ModelProviderInfo {
@@ -1025,5 +1055,40 @@ mod tests {
                 .iter()
                 .any(|model| model.slug == "provider-model")
         );
+    }
+
+    #[tokio::test]
+    async fn glm_provider_creates_static_models_manager_without_remote_fetch() {
+        let provider = create_model_provider(
+            ModelProviderInfo::create_glm_provider(),
+            /*auth_manager*/ None,
+        );
+
+        for manager in [
+            provider.models_manager(test_codex_home(), /*config_model_catalog*/ None),
+            provider.models_manager_without_cache(/*config_model_catalog*/ None),
+        ] {
+            // `RefreshStrategy::Online` would hit the network for remote
+            // catalogs; the GLM catalog is static and must not.
+            let available_models = manager
+                .list_models(
+                    RefreshStrategy::Online,
+                    HttpClientFactory::new(OutboundProxyPolicy::ReqwestDefault),
+                )
+                .await;
+
+            assert_eq!(
+                available_models
+                    .iter()
+                    .map(|preset| preset.model.as_str())
+                    .collect::<Vec<_>>(),
+                vec![GLM_DEFAULT_MODEL, "glm-5.2", "glm-4.6"]
+            );
+            let default_model = available_models
+                .iter()
+                .find(|preset| preset.is_default)
+                .expect("GLM catalog should have a default model");
+            assert_eq!(default_model.model, GLM_DEFAULT_MODEL);
+        }
     }
 }

@@ -263,6 +263,58 @@ fn test_create_amazon_bedrock_provider() {
 }
 
 #[test]
+fn test_create_glm_provider() {
+    assert_eq!(
+        ModelProviderInfo::create_glm_provider(),
+        ModelProviderInfo {
+            name: "GLM (Zhipu)".to_string(),
+            base_url: Some(GLM_DEFAULT_BASE_URL.to_string()),
+            env_key: Some(GLM_API_KEY_ENV_VAR.to_string()),
+            env_key_instructions: Some(
+                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY environment variable.".to_string(),
+            ),
+            experimental_bearer_token: None,
+            auth: None,
+            aws: None,
+            wire_api: WireApi::Responses,
+            query_params: None,
+            http_headers: None,
+            env_http_headers: None,
+            request_max_retries: None,
+            stream_max_retries: None,
+            stream_idle_timeout_ms: None,
+            websocket_connect_timeout_ms: None,
+            requires_openai_auth: false,
+            supports_websockets: false,
+            supports_standalone_web_search: false,
+        }
+    );
+}
+
+#[test]
+fn test_glm_provider_sends_no_openai_specific_headers() {
+    let api_provider = ModelProviderInfo::create_glm_provider()
+        .to_api_provider(/*auth_mode*/ None)
+        .expect("GLM provider should build API provider");
+
+    assert_eq!(api_provider.base_url, GLM_DEFAULT_BASE_URL);
+    assert_eq!(api_provider.headers, http::HeaderMap::new());
+}
+
+#[test]
+fn test_built_in_model_providers_include_glm() {
+    let providers = built_in_model_providers(/*openai_base_url*/ None);
+
+    let glm = providers
+        .get(GLM_PROVIDER_ID)
+        .expect("GLM provider should be built in");
+    assert!(glm.is_glm());
+    assert!(!glm.requires_openai_auth);
+    // The OpenAI provider must remain available when explicitly configured.
+    assert!(providers.contains_key(OPENAI_PROVIDER_ID));
+}
+
+#[test]
 fn test_create_amazon_bedrock_runtime_provider() {
     let mut expected = ModelProviderInfo::create_amazon_bedrock_provider(/*aws*/ None);
     expected.name = "Amazon Bedrock Runtime".to_string();
