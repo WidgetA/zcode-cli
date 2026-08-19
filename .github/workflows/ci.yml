@@ -33,7 +33,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: codex-rs
-      - run: cargo check --workspace
+      - name: Install system deps (ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcap-dev pkg-config
+      - name: cargo check
+        run: cargo check -p codex-cli -p codex-tui -p codex-app-server
         working-directory: codex-rs
 
   test:
