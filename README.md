@@ -26,7 +26,14 @@ This installs the `zcode` binary. Prebuilt binaries are also available from the
 
 ### Configure your API key
 
-Get an API key from the [GLM Coding Plan](https://open.bigmodel.cn) and set it in your environment:
+Get an API key from the [GLM Coding Plan](https://open.bigmodel.cn). Easiest: run `zcode login`
+and paste the key when prompted — it is stored in `~/.zcode/auth.json` and picked up from then on:
+
+```shell
+zcode login
+```
+
+Alternatively set it in your environment:
 
 ```shell
 # macOS / Linux
@@ -36,8 +43,10 @@ export ZHIPU_API_KEY="your-api-key"
 $env:ZHIPU_API_KEY = "your-api-key"
 ```
 
-`ZCODE_API_KEY` is also accepted as an alias when `ZHIPU_API_KEY` is not set.
-（未设置 `ZHIPU_API_KEY` 时，也可以使用 `ZCODE_API_KEY` 环境变量。）
+`ZCODE_API_KEY` is also accepted as an alias when `ZHIPU_API_KEY` is not set. Environment variables
+take precedence over a stored key. `zcode logout` removes the stored key.
+（也可以直接运行 `zcode login` 粘贴 Key 保存；未设置 `ZHIPU_API_KEY` 时可用 `ZCODE_API_KEY` 别名；
+环境变量优先于已保存的 Key。）
 
 ### Run
 

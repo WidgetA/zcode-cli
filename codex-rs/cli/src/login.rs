@@ -17,6 +17,7 @@ use codex_login::ServerOptions;
 use codex_login::is_workload_identity_selected;
 use codex_login::login_with_access_token;
 use codex_login::login_with_api_key;
+use codex_login::login_with_glm_api_key;
 use codex_login::logout_with_revoke;
 use codex_login::run_device_code_login;
 use codex_login::run_login_server;
@@ -170,6 +171,11 @@ pub async fn run_login_with_chatgpt(cli_config_overrides: CliConfigOverrides) ->
     let _login_log_guard = init_login_file_logging(&config);
     tracing::info!("starting browser login flow");
 
+    if config.model_provider.is_glm() {
+        let api_key = prompt_for_glm_api_key();
+        run_login_with_glm_api_key(&config, &api_key);
+    }
+
     if !config
         .auth_config()
         .is_login_method_allowed(ForcedLoginMethod::Chatgpt)
@@ -213,6 +219,10 @@ pub async fn run_login_with_api_key(
     {
         eprintln!("{API_KEY_LOGIN_DISABLED_MESSAGE}");
         std::process::exit(1);
+    }
+
+    if config.model_provider.is_glm() {
+        run_login_with_glm_api_key(&config, &api_key);
     }
 
     match login_with_api_key(
@@ -278,6 +288,52 @@ pub fn read_api_key_from_stdin() -> String {
         "Reading API key from stdin...",
         "No API key provided via stdin.",
     )
+}
+
+/// Stores a GLM (Zhipu) API key in the auth store, then exits.
+///
+/// Used by both the interactive `zcode login` prompt and
+/// `zcode login --with-api-key` when the GLM provider is active.
+fn run_login_with_glm_api_key(config: &Config, api_key: &str) -> ! {
+    if !config
+        .auth_config()
+        .is_login_method_allowed(ForcedLoginMethod::Api)
+    {
+        eprintln!("{API_KEY_LOGIN_DISABLED_MESSAGE}");
+        std::process::exit(1);
+    }
+
+    match login_with_glm_api_key(
+        &config.codex_home,
+        api_key,
+        config.cli_auth_credentials_store_mode,
+        config.auth_keyring_backend_kind(),
+    ) {
+        Ok(_) => {
+            eprintln!("{LOGIN_SUCCESS_MESSAGE}");
+            std::process::exit(0);
+        }
+        Err(e) => {
+            eprintln!("Error logging in: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Prompts for a GLM (Zhipu) API key on the terminal, echoing input.
+fn prompt_for_glm_api_key() -> String {
+    eprintln!("Paste your GLM API key (get one at https://open.bigmodel.cn), then press Enter:");
+    let mut buffer = String::new();
+    if let Err(err) = std::io::stdin().read_line(&mut buffer) {
+        eprintln!("Failed to read API key: {err}");
+        std::process::exit(1);
+    }
+    let api_key = buffer.trim().to_string();
+    if api_key.is_empty() {
+        eprintln!("No API key provided.");
+        std::process::exit(1);
+    }
+    api_key
 }
 
 pub fn read_access_token_from_stdin() -> String {

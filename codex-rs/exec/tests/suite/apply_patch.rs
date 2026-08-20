@@ -207,6 +207,7 @@ async fn shutdown_flushes_completed_turn_and_file_diff() -> anyhow::Result<()> {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         },
         codex_login::AuthCredentialsStoreMode::File,

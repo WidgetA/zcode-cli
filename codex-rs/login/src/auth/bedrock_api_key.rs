@@ -31,6 +31,7 @@ pub fn login_with_bedrock_api_key(
         last_refresh: None,
         agent_identity: None,
         personal_access_token: None,
+        glm_api_key: None,
         bedrock_api_key: Some(BedrockApiKeyAuth {
             api_key: api_key.to_string(),
             region: region.to_string(),

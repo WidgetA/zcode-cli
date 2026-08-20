@@ -122,6 +122,7 @@ fn remote_control_auth_dot_json(account_id: Option<&str>) -> AuthDotJson {
         last_refresh: Some(chrono::Utc::now()),
         agent_identity: None,
         personal_access_token: None,
+        glm_api_key: None,
         bedrock_api_key: None,
     }
 }

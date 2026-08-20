@@ -44,6 +44,8 @@ use crate::legacy_core::config::Config;
 use crate::onboarding::auth::AuthModeWidget;
 use crate::onboarding::auth::SignInOption;
 use crate::onboarding::auth::SignInState;
+use crate::onboarding::glm_api_key::GlmApiKeyWidget;
+use crate::onboarding::glm_api_key::glm_api_key_setup_needed;
 use crate::onboarding::keys;
 use crate::onboarding::trust_directory::TrustDirectorySelection;
 use crate::onboarding::trust_directory::TrustDirectoryWidget;
@@ -62,6 +64,7 @@ enum Step {
     Welcome(WelcomeWidget),
     Auth(AuthModeWidget),
     TrustDirectory(TrustDirectoryWidget),
+    GlmApiKey(GlmApiKeyWidget),
 }
 
 pub(crate) trait KeyboardHandler {
@@ -182,6 +185,12 @@ impl OnboardingScreen {
                 error: None,
             }))
         }
+        if glm_api_key_setup_needed(&config) {
+            steps.push(Step::GlmApiKey(GlmApiKeyWidget::new(
+                &config,
+                tui.frame_requester(),
+            )));
+        }
         Self {
             request_frame: tui.frame_requester(),
             steps,
@@ -226,7 +235,7 @@ impl OnboardingScreen {
         // material so terminal selection is not interrupted by redraws.
         self.current_steps().into_iter().any(|step| match step {
             Step::Auth(widget) => widget.should_suppress_animations(),
-            Step::Welcome(_) | Step::TrustDirectory(_) => false,
+            Step::Welcome(_) | Step::TrustDirectory(_) | Step::GlmApiKey(_) => false,
         })
     }
 
@@ -267,7 +276,7 @@ impl OnboardingScreen {
     fn auth_widget_mut(&mut self) -> Option<&mut AuthModeWidget> {
         self.steps.iter_mut().find_map(|step| match step {
             Step::Auth(widget) => Some(widget),
-            Step::Welcome(_) | Step::TrustDirectory(_) => None,
+            Step::Welcome(_) | Step::TrustDirectory(_) | Step::GlmApiKey(_) => None,
         })
     }
 
@@ -290,17 +299,27 @@ impl OnboardingScreen {
     fn api_key_entry_context(&self) -> ApiKeyEntryContext {
         self.steps
             .iter()
-            .find_map(|step| {
-                if let Step::Auth(widget) = step {
-                    Some(ApiKeyEntryContext {
-                        active: widget.is_api_key_entry_active(),
-                        has_text: widget.api_key_entry_has_text(),
-                    })
-                } else {
-                    None
-                }
+            .find_map(|step| match step {
+                Step::Auth(widget) => Some(ApiKeyEntryContext {
+                    active: widget.is_api_key_entry_active(),
+                    has_text: widget.api_key_entry_has_text(),
+                }),
+                Step::GlmApiKey(widget) => Some(ApiKeyEntryContext {
+                    active: widget.is_entry_active(),
+                    has_text: widget.entry_has_text(),
+                }),
+                Step::Welcome(_) | Step::TrustDirectory(_) => None,
             })
             .unwrap_or_default()
+    }
+
+    /// Check whether the first unfinished onboarding step is the GLM API-key
+    /// entry step.
+    fn is_glm_api_key_step_active(&self) -> bool {
+        self.steps
+            .iter()
+            .find(|step| matches!(step.get_step_state(), StepState::InProgress))
+            .is_some_and(|step| matches!(step, Step::GlmApiKey(_)))
     }
 }
 
@@ -326,7 +345,7 @@ impl KeyboardHandler for OnboardingScreen {
                 // If the user cancels the auth menu, exit the app rather than
                 // leave the user at a prompt in an unauthed state.
                 self.should_exit = true;
-            } else if self.is_trust_step_active() {
+            } else if self.is_trust_step_active() || self.is_glm_api_key_step_active() {
                 self.should_exit = true;
             }
             self.is_done = true;
@@ -392,7 +411,7 @@ impl WidgetRef for &OnboardingScreen {
             match step {
                 Step::Welcome(widget) => widget.set_animations_suppressed(suppress_animations),
                 Step::Auth(widget) => widget.set_animations_suppressed(suppress_animations),
-                Step::TrustDirectory(_) => {}
+                Step::TrustDirectory(_) | Step::GlmApiKey(_) => {}
             }
         }
 
@@ -466,6 +485,7 @@ impl KeyboardHandler for Step {
             Step::Welcome(widget) => widget.handle_key_event(key_event),
             Step::Auth(widget) => widget.handle_key_event(key_event),
             Step::TrustDirectory(widget) => widget.handle_key_event(key_event),
+            Step::GlmApiKey(widget) => widget.handle_key_event(key_event),
         }
     }
 
@@ -474,6 +494,7 @@ impl KeyboardHandler for Step {
             Step::Welcome(_) => {}
             Step::Auth(widget) => widget.handle_paste(pasted),
             Step::TrustDirectory(widget) => widget.handle_paste(pasted),
+            Step::GlmApiKey(widget) => widget.handle_paste(pasted),
         }
     }
 }
@@ -484,6 +505,7 @@ impl StepStateProvider for Step {
             Step::Welcome(w) => w.get_step_state(),
             Step::Auth(w) => w.get_step_state(),
             Step::TrustDirectory(w) => w.get_step_state(),
+            Step::GlmApiKey(w) => w.get_step_state(),
         }
     }
 }
@@ -498,6 +520,9 @@ impl WidgetRef for Step {
                 widget.render_ref(area, buf);
             }
             Step::TrustDirectory(widget) => {
+                widget.render_ref(area, buf);
+            }
+            Step::GlmApiKey(widget) => {
                 widget.render_ref(area, buf);
             }
         }

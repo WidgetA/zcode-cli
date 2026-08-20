@@ -1,0 +1,7 @@
+---
+source: tui/src/onboarding/glm_api_key_tests.rs
+expression: terminal.backend()
+---
+✓ GLM API key saved
+
+  Update it any time with `zcode login`.

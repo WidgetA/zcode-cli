@@ -58,6 +58,13 @@ pub struct AuthDotJson {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bedrock_api_key: Option<BedrockApiKeyAuth>,
+
+    #[serde(
+        rename = "GLM_API_KEY",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub glm_api_key: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]

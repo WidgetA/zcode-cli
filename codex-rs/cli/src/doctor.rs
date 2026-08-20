@@ -3559,6 +3559,7 @@ mod tests {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         };
 
@@ -3578,6 +3579,7 @@ mod tests {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         };
 
@@ -3599,6 +3601,7 @@ mod tests {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: Some("at-test".to_string()),
+            glm_api_key: None,
             bedrock_api_key: None,
         };
 
@@ -3622,6 +3625,7 @@ mod tests {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         };
 

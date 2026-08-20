@@ -1903,6 +1903,12 @@ fn should_show_onboarding(
         return true;
     }
 
+    // First run with the GLM provider and no API key from the environment or
+    // the auth store: prompt for a key before landing in the composer.
+    if crate::onboarding::glm_api_key_setup_needed(config) {
+        return true;
+    }
+
     should_show_login_screen(login_status, config)
 }
 

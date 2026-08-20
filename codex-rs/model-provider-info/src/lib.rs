@@ -435,7 +435,7 @@ impl ModelProviderInfo {
             base_url: Some(GLM_DEFAULT_BASE_URL.to_string()),
             env_key: Some(GLM_API_KEY_ENV_VAR.to_string()),
             env_key_instructions: Some(
-                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY (or ZCODE_API_KEY) environment variable.".to_string(),
+                "Get your API key from the GLM Coding Plan at https://open.bigmodel.cn and set the ZHIPU_API_KEY (or ZCODE_API_KEY) environment variable, or run `zcode login` to store it.".to_string(),
             ),
             experimental_bearer_token: None,
             auth: None,

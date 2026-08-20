@@ -10,12 +10,15 @@ mod util;
 mod workload_identity;
 
 mod external_bearer;
+mod glm_api_key;
 mod manager;
 mod revoke;
 
 pub use auth_headers::AuthHeaders;
 pub use bedrock_api_key::BedrockApiKeyAuth;
 pub use bedrock_api_key::login_with_bedrock_api_key;
+pub use glm_api_key::load_stored_glm_api_key;
+pub use glm_api_key::login_with_glm_api_key;
 pub use error::RefreshTokenFailedError;
 pub use error::RefreshTokenFailedReason;
 pub use manager::*;

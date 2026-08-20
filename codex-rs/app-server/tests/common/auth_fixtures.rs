@@ -166,6 +166,7 @@ pub fn write_chatgpt_auth(
         last_refresh,
         agent_identity: None,
         personal_access_token: None,
+        glm_api_key: None,
         bedrock_api_key: None,
     };
 

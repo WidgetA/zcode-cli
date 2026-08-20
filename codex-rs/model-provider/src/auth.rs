@@ -17,6 +17,7 @@ use codex_login::auth::AgentIdentityAuthError;
 use codex_login::auth::AgentIdentityAuthPolicy;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_protocol::error::CodexErr;
+use codex_protocol::error::CodexErrorDetails;
 use codex_protocol::protocol::SessionSource;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -216,6 +217,31 @@ pub(crate) fn resolve_provider_auth(
         Some(auth) => auth_provider_from_auth(auth),
         None => unauthenticated_auth_provider(),
     })
+}
+
+/// Resolves provider auth, falling back to the GLM (Zhipu) API key persisted
+/// in the auth store when the GLM provider has no key in the environment.
+///
+/// Credential precedence for the GLM provider is `ZHIPU_API_KEY` >
+/// `ZCODE_API_KEY` > the key stored by `zcode login` or first-run onboarding.
+pub(crate) fn resolve_provider_auth_with_stored_glm_key(
+    auth_manager: Option<Arc<AuthManager>>,
+    auth: Option<&CodexAuth>,
+    provider: &ModelProviderInfo,
+) -> codex_protocol::error::Result<SharedAuthProvider> {
+    match resolve_provider_auth(auth, provider) {
+        Ok(provider_auth) => Ok(provider_auth),
+        Err(err) => {
+            if provider.is_glm()
+                && matches!(err.details(), CodexErrorDetails::EnvVar(_))
+                && let Some(api_key) =
+                    auth_manager.and_then(|auth_manager| auth_manager.stored_glm_api_key())
+            {
+                return Ok(Arc::new(BearerAuthProvider::new(api_key)));
+            }
+            Err(err)
+        }
+    }
 }
 
 pub(crate) async fn resolve_provider_auth_for_scope(
@@ -845,5 +871,147 @@ mod tests {
         assert!(first_fallback.is_engaged());
         assert!(second_fallback.is_engaged());
         assert_eq!(registration_count.load(Ordering::SeqCst), 3);
+    }
+
+    /// Restores the GLM credential env vars on drop so tests can safely
+    /// exercise env-vs-stored precedence.
+    struct GlmEnvGuard {
+        zhipu_api_key: Option<std::ffi::OsString>,
+        zcode_api_key: Option<std::ffi::OsString>,
+    }
+
+    impl GlmEnvGuard {
+        fn remove_vars() -> Self {
+            let guard = Self {
+                zhipu_api_key: std::env::var_os("ZHIPU_API_KEY"),
+                zcode_api_key: std::env::var_os("ZCODE_API_KEY"),
+            };
+            unsafe {
+                std::env::remove_var("ZHIPU_API_KEY");
+                std::env::remove_var("ZCODE_API_KEY");
+            }
+            guard
+        }
+
+        fn set_zhipu_api_key(&self, value: &str) {
+            unsafe { std::env::set_var("ZHIPU_API_KEY", value) };
+        }
+    }
+
+    impl Drop for GlmEnvGuard {
+        fn drop(&mut self) {
+            unsafe {
+                match &self.zhipu_api_key {
+                    Some(value) => std::env::set_var("ZHIPU_API_KEY", value),
+                    None => std::env::remove_var("ZHIPU_API_KEY"),
+                }
+                match &self.zcode_api_key {
+                    Some(value) => std::env::set_var("ZCODE_API_KEY", value),
+                    None => std::env::remove_var("ZCODE_API_KEY"),
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn glm_provider_prefers_env_key_then_stored_key() {
+        let env_guard = GlmEnvGuard::remove_vars();
+        let codex_home = test_codex_home();
+        codex_login::login_with_glm_api_key(
+            &codex_home,
+            "glm-stored-key",
+            AuthCredentialsStoreMode::File,
+            AuthKeyringBackendKind::default(),
+        )
+        .expect("save GLM API key");
+        let auth_manager = AuthManager::shared(
+            codex_home,
+            /*enable_codex_api_key_env*/ false,
+            AuthCredentialsStoreMode::File,
+            /*forced_chatgpt_workspace_id*/ None,
+            /*chatgpt_base_url*/ None,
+            AuthKeyringBackendKind::default(),
+            codex_login::test_support::transport_default_auth_route_config(),
+        )
+        .await;
+        let provider = ModelProviderInfo::create_glm_provider();
+
+        // With no env key set, the stored key is used.
+        let auth = resolve_provider_auth_with_stored_glm_key(
+            Some(Arc::clone(&auth_manager)),
+            /*auth*/ None,
+            &provider,
+        )
+        .expect("auth should resolve from stored key");
+        assert_eq!(
+            auth.to_auth_headers().get(AUTHORIZATION),
+            Some(&HeaderValue::from_static("Bearer glm-stored-key"))
+        );
+
+        // An env key takes precedence over the stored key.
+        env_guard.set_zhipu_api_key("glm-env-key");
+        let auth = resolve_provider_auth_with_stored_glm_key(
+            Some(auth_manager),
+            /*auth*/ None,
+            &provider,
+        )
+        .expect("auth should resolve from env key");
+        assert_eq!(
+            auth.to_auth_headers().get(AUTHORIZATION),
+            Some(&HeaderValue::from_static("Bearer glm-env-key"))
+        );
+    }
+
+    #[tokio::test]
+    async fn glm_provider_errors_without_env_or_stored_key() {
+        let _env_guard = GlmEnvGuard::remove_vars();
+        let codex_home = test_codex_home();
+        let auth_manager = AuthManager::shared(
+            codex_home,
+            /*enable_codex_api_key_env*/ false,
+            AuthCredentialsStoreMode::File,
+            /*forced_chatgpt_workspace_id*/ None,
+            /*chatgpt_base_url*/ None,
+            AuthKeyringBackendKind::default(),
+            codex_login::test_support::transport_default_auth_route_config(),
+        )
+        .await;
+        let provider = ModelProviderInfo::create_glm_provider();
+
+        let result = resolve_provider_auth_with_stored_glm_key(
+            Some(auth_manager),
+            /*auth*/ None,
+            &provider,
+        );
+
+        let Err(err) = result else {
+            panic!("auth should fail without any GLM key");
+        };
+
+        match err.details() {
+            CodexErrorDetails::EnvVar(error) => {
+                assert_eq!(error.var, "ZHIPU_API_KEY");
+                assert!(
+                    error
+                        .instructions
+                        .as_deref()
+                        .is_some_and(|instructions| instructions.contains("zcode login"))
+                );
+            }
+            details => panic!("unexpected auth error: {details:?}"),
+        }
+    }
+
+    #[test]
+    fn non_glm_provider_does_not_use_stored_glm_key() {
+        let provider =
+            create_oss_provider_with_base_url("http://localhost:11434/v1", WireApi::Responses);
+
+        let auth = resolve_provider_auth_with_stored_glm_key(
+            /*auth_manager*/ None, /*auth*/ None, &provider,
+        )
+        .expect("auth should resolve");
+
+        assert!(auth.to_auth_headers().is_empty());
     }
 }

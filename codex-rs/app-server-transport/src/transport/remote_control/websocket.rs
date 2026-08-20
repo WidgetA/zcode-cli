@@ -2060,6 +2060,7 @@ mod tests {
             last_refresh: Some(Utc::now()),
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         }
     }

@@ -1141,6 +1141,7 @@ async fn login_amazon_bedrock_replaces_primary_auth_and_persists_provider() -> R
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: Some(BedrockApiKeyAuth {
                 api_key: "managed-bedrock-api-key".to_string(),
                 region: "us-west-2".to_string(),
@@ -1272,6 +1273,7 @@ async fn login_amazon_bedrock_allows_bedrock_provider_override() -> Result<()> {
             last_refresh: None,
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: Some(BedrockApiKeyAuth {
                 api_key: "managed-bedrock-api-key".to_string(),
                 region: "us-west-2".to_string(),

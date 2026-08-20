@@ -37,6 +37,7 @@ use super::agent_identity::register_managed_chatgpt_agent_identity;
 use super::agent_identity::require_agent_identity_authapi_base_url;
 use super::agent_identity::verified_record_from_jwt;
 use super::external_bearer::BearerTokenRefresher;
+use super::glm_api_key;
 use super::revoke::revoke_auth_tokens;
 use super::workload_identity::WorkloadIdentityExternalAuth;
 use super::workload_identity::WorkloadIdentitySessionError;
@@ -765,6 +766,7 @@ impl CodexAuth {
             last_refresh: Some(Utc::now()),
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         };
 
@@ -969,6 +971,7 @@ pub fn login_with_api_key(
         last_refresh: None,
         agent_identity: None,
         personal_access_token: None,
+        glm_api_key: None,
         bedrock_api_key: None,
     };
     save_auth(
@@ -1002,6 +1005,7 @@ pub async fn login_with_access_token(
                 last_refresh: None,
                 agent_identity: None,
                 personal_access_token: Some(access_token.to_string()),
+                glm_api_key: None,
                 bedrock_api_key: None,
             }
         }
@@ -1020,6 +1024,7 @@ pub async fn login_with_access_token(
                 last_refresh: None,
                 agent_identity: Some(AgentIdentityStorage::Jwt(jwt.to_string())),
                 personal_access_token: None,
+                glm_api_key: None,
                 bedrock_api_key: None,
             }
         }
@@ -1703,6 +1708,7 @@ impl AuthDotJson {
             last_refresh: Some(Utc::now()),
             agent_identity: None,
             personal_access_token: None,
+            glm_api_key: None,
             bedrock_api_key: None,
         })
     }
@@ -2274,6 +2280,24 @@ impl AuthManager {
             .read()
             .ok()
             .and_then(|cached| cached.auth.clone())
+    }
+
+    /// Returns the GLM (Zhipu) API key persisted in auth storage, if any.
+    ///
+    /// This backs the GLM provider's credential fallback when neither
+    /// `ZHIPU_API_KEY` nor `ZCODE_API_KEY` is set in the environment.
+    pub fn stored_glm_api_key(&self) -> Option<String> {
+        match glm_api_key::load_stored_glm_api_key(
+            &self.codex_home,
+            self.auth_credentials_store_mode,
+            self.keyring_backend_kind,
+        ) {
+            Ok(api_key) => api_key,
+            Err(err) => {
+                tracing::warn!("failed to load stored GLM API key: {err}");
+                None
+            }
+        }
     }
 
     /// Subscribes to cached auth changes that can affect request recovery.
