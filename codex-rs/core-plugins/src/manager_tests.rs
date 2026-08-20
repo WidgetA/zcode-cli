@@ -174,6 +174,33 @@ fn curated_repo_sync_stays_deferred_for_remote_chatgpt_catalog() {
 }
 
 #[test]
+fn curated_repo_sync_stays_off_for_glm_provider() {
+    // zcode-cli fork: the curated marketplace sync pulls from OpenAI
+    // infrastructure, so it stays off for the GLM provider.
+    CURATED_REPO_SYNC_STARTED.store(false, std::sync::atomic::Ordering::SeqCst);
+    let tmp = TempDir::new().unwrap();
+    let config = PluginsConfigInput::new(
+        unrestricted_config_layer_stack(),
+        "glm".to_string(),
+        /*plugins_enabled*/ true,
+        /*remote_plugin_enabled*/ false,
+        String::new(),
+        test_http_client_factory(),
+    );
+    let manager = Arc::new(test_plugins_manager_with_options(
+        tmp.path().to_path_buf(),
+        Some(Product::Codex),
+        /*auth_mode*/ None,
+    ));
+
+    manager.maybe_start_curated_repo_sync_for_config(
+        &config, /*on_effective_plugins_changed*/ None,
+    );
+
+    assert!(!CURATED_REPO_SYNC_STARTED.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[test]
 fn marketplace_source_refresh_notifies_only_after_installed_cache_changes() {
     let tmp = TempDir::new().unwrap();
     let manager = test_plugins_manager(tmp.path().to_path_buf());

@@ -956,6 +956,14 @@ async fn start_thread_seeds_extension_data_for_mcp_and_lifecycle_contributors() 
     let mut config = test_config().await;
     config.codex_home = temp_dir.path().join("codex-home").abs();
     config.cwd = config.codex_home.abs();
+    // zcode-cli fork: Apps stay off for the default GLM provider, so this
+    // test exercises the OpenAI provider explicitly.
+    config.model_provider_id = codex_model_provider_info::OPENAI_PROVIDER_ID.to_string();
+    config.model_provider = config
+        .model_providers
+        .get(&config.model_provider_id)
+        .expect("openai provider should be built in")
+        .clone();
     config
         .features
         .enable(Feature::Apps)

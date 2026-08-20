@@ -6732,7 +6732,12 @@ pane = { selected = "console", expanded = false }
 async fn to_mcp_config_preserves_apps_feature_from_config() -> std::io::Result<()> {
     let codex_home = TempDir::new()?;
     let mut config = Config::load_from_base_config_with_overrides(
-        ConfigToml::default(),
+        ConfigToml {
+            // zcode-cli fork: Apps stay off for the default GLM provider, so
+            // this test exercises the OpenAI provider explicitly.
+            model_provider: Some(codex_model_provider_info::OPENAI_PROVIDER_ID.to_string()),
+            ..ConfigToml::default()
+        },
         ConfigOverrides::default(),
         codex_home.abs(),
     )
@@ -6752,6 +6757,25 @@ async fn to_mcp_config_preserves_apps_feature_from_config() -> std::io::Result<(
     let _ = config.features.enable(Feature::Apps);
     let mcp_config = config.to_mcp_config(&plugins_manager).await;
     assert!(mcp_config.apps_enabled);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn to_mcp_config_disables_apps_for_glm_provider() -> std::io::Result<()> {
+    let codex_home = TempDir::new()?;
+    let config = Config::load_from_base_config_with_overrides(
+        ConfigToml::default(),
+        ConfigOverrides::default(),
+        codex_home.abs(),
+    )
+    .await?;
+    assert!(config.model_provider.is_glm());
+    let plugins_manager =
+        plugins_manager_for_config(&config, auth_manager_from_optional_auth(/*auth*/ None));
+
+    let mcp_config = config.to_mcp_config(&plugins_manager).await;
+    assert!(!mcp_config.apps_enabled);
 
     Ok(())
 }
@@ -9404,7 +9428,7 @@ async fn legacy_profile_selection_is_rejected() -> std::io::Result<()> {
 }
 
 #[tokio::test]
-async fn metrics_exporter_defaults_to_statsig_when_missing() -> std::io::Result<()> {
+async fn metrics_exporter_defaults_to_none_when_missing() -> std::io::Result<()> {
     let fixture = create_test_fixture()?;
 
     let config = Config::load_from_base_config_with_overrides(
@@ -9417,7 +9441,8 @@ async fn metrics_exporter_defaults_to_statsig_when_missing() -> std::io::Result<
     )
     .await?;
 
-    assert_eq!(config.otel.metrics_exporter, OtelExporterKind::Statsig);
+    // zcode-cli fork: the upstream Statsig default posts to ab.chatgpt.com.
+    assert_eq!(config.otel.metrics_exporter, OtelExporterKind::None);
     Ok(())
 }
 

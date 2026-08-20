@@ -304,7 +304,13 @@ impl CodexAuth {
     ) -> std::io::Result<Self> {
         let auth_mode = auth_dot_json.resolved_mode();
         if auth_mode == AuthMode::ApiKey {
-            let Some(api_key) = auth_dot_json.openai_api_key.as_deref() else {
+            // zcode-cli fork: a GLM-only auth.json resolves to API-key mode via
+            // `resolved_mode`, so fall back to the stored GLM key here.
+            let Some(api_key) = auth_dot_json
+                .openai_api_key
+                .as_deref()
+                .or(auth_dot_json.glm_api_key.as_deref())
+            else {
                 return Err(std::io::Error::other("API key auth is missing a key."));
             };
             return Ok(Self::from_api_key(api_key));
@@ -1724,6 +1730,13 @@ impl AuthDotJson {
             return AuthMode::BedrockApiKey;
         }
         if self.openai_api_key.is_some() {
+            return AuthMode::ApiKey;
+        }
+        // zcode-cli fork: a stored GLM (Zhipu) API key is API-key auth, not
+        // ChatGPT auth. Without this branch a GLM-only auth.json falls through
+        // to `AuthMode::Chatgpt`, which wrongly enables OpenAI-backend code
+        // paths (codex_apps MCP, remote plugin catalog, connectors).
+        if self.glm_api_key.is_some() {
             return AuthMode::ApiKey;
         }
         AuthMode::Chatgpt

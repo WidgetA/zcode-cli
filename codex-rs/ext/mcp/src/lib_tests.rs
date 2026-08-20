@@ -15,6 +15,8 @@ async fn hosted_plugin_runtime_forwards_thread_originator() -> Result<(), Box<dy
         .cli_overrides(vec![
             ("features.apps".to_string(), true.into()),
             ("chatgpt_base_url".to_string(), "https://chatgpt.com".into()),
+            // zcode-cli fork: Apps stay off for the default GLM provider.
+            ("model_provider".to_string(), "openai".into()),
         ])
         .build()
         .await?;

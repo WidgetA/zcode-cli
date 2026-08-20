@@ -124,9 +124,12 @@ pub async fn list_cached_accessible_connectors_from_mcp_tools(
             .await
             .ok()?;
     let auth = auth_manager.auth().await;
-    if !config
-        .features
-        .apps_enabled_for_auth(auth.as_ref().is_some_and(CodexAuth::uses_codex_backend))
+    // zcode-cli fork: connectors are served by OpenAI's backend, so skip them
+    // entirely for the GLM provider even if a ChatGPT login is present.
+    if config.model_provider.is_glm()
+        || !config
+            .features
+            .apps_enabled_for_auth(auth.as_ref().is_some_and(CodexAuth::uses_codex_backend))
     {
         return Some(Vec::new());
     }
@@ -214,9 +217,12 @@ pub async fn list_accessible_connectors_from_mcp_tools_with_mcp_manager(
     let auth_manager =
         AuthManager::shared_from_config(config, /*enable_codex_api_key_env*/ false).await?;
     let auth = auth_manager.auth().await;
-    if !config
-        .features
-        .apps_enabled_for_auth(auth.as_ref().is_some_and(CodexAuth::uses_codex_backend))
+    // zcode-cli fork: connectors are served by OpenAI's backend, so skip them
+    // entirely for the GLM provider even if a ChatGPT login is present.
+    if config.model_provider.is_glm()
+        || !config
+            .features
+            .apps_enabled_for_auth(auth.as_ref().is_some_and(CodexAuth::uses_codex_backend))
     {
         return Ok(AccessibleConnectorsStatus {
             connectors: Vec::new(),

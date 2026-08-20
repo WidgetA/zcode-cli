@@ -23,7 +23,11 @@ impl McpServerContributor<Config> for HostedPluginRuntimeExtension {
         Box::pin(async move {
             let config = context.config();
             let name = CODEX_APPS_MCP_SERVER_NAME.to_string();
-            if !config.features.enabled(codex_features::Feature::Apps) {
+            // zcode-cli fork: hosted Apps are served by OpenAI's backend, so
+            // keep the contribution off for the GLM provider as well.
+            if !config.features.enabled(codex_features::Feature::Apps)
+                || config.model_provider.is_glm()
+            {
                 return vec![McpServerContribution::Remove { name }];
             }
 

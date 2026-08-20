@@ -1689,7 +1689,10 @@ impl Config {
             environment_cwds: HashMap::new(),
             codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.clone(),
             use_legacy_landlock: self.features.use_legacy_landlock(),
-            apps_enabled: self.features.enabled(Feature::Apps),
+            // zcode-cli fork: the Apps integration is served by OpenAI's
+            // backend (chatgpt.com), so keep it off entirely for the GLM
+            // provider even if a ChatGPT login is present.
+            apps_enabled: self.features.enabled(Feature::Apps) && !self.model_provider.is_glm(),
             prefix_mcp_tool_names: self.prefix_mcp_tool_names(),
             non_prefixed_mcp_tool_servers: if self
                 .features

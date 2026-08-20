@@ -1231,7 +1231,10 @@ impl Session {
                 AnalyticsEventsClient::new(
                     Arc::clone(&auth_manager),
                     config.chatgpt_base_url.trim_end_matches('/').to_string(),
-                    config.analytics_enabled,
+                    // zcode-cli fork: analytics events post to OpenAI's backend,
+                    // so they are opt-in (`analytics.enabled = true`) rather
+                    // than on by default, matching the app-server path.
+                    Some(config.analytics_enabled.unwrap_or(false)),
                 )
             });
             for item in initial_history.get_rollout_items() {

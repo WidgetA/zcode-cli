@@ -125,3 +125,33 @@ fn logout_clears_stored_glm_api_key() {
     .expect("load GLM API key");
     assert_eq!(stored, None);
 }
+
+#[tokio::test]
+async fn glm_only_auth_loads_as_api_key_auth_not_chatgpt() {
+    let codex_home = tempdir().expect("create temporary Codex home");
+    login_with_glm_api_key(
+        codex_home.path(),
+        "glm-test-key",
+        AuthCredentialsStoreMode::File,
+        AuthKeyringBackendKind::default(),
+    )
+    .expect("save GLM API key");
+
+    let auth = crate::CodexAuth::from_auth_storage(
+        codex_home.path(),
+        AuthCredentialsStoreMode::File,
+        /*chatgpt_base_url*/ None,
+        AuthKeyringBackendKind::default(),
+        &crate::test_support::transport_default_auth_route_config(),
+    )
+    .await
+    .expect("load auth")
+    .expect("auth should exist");
+
+    // A stored GLM key is API-key auth: it must not activate OpenAI-backend
+    // code paths (codex_apps MCP, remote plugin catalog, connectors).
+    assert_eq!(auth.auth_mode(), codex_protocol::auth::AuthMode::ApiKey);
+    assert!(!auth.uses_codex_backend());
+    assert!(!auth.is_chatgpt_auth());
+    assert_eq!(auth.api_key(), Some("glm-test-key"));
+}

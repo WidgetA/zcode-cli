@@ -158,6 +158,14 @@ impl PluginsConfigInput {
             self.http_client_factory.clone(),
         )
     }
+
+    /// zcode-cli fork: whether the active model provider is GLM (Zhipu).
+    ///
+    /// OpenAI-backed plugin surfaces (remote catalog, curated marketplace
+    /// sync) stay off in that case, regardless of any stored ChatGPT auth.
+    pub fn uses_glm_provider(&self) -> bool {
+        self.model_provider_id == codex_model_provider::GLM_PROVIDER_ID
+    }
 }
 
 /// Effective-plugin changes that downstream composition layers may act on.
@@ -570,7 +578,10 @@ impl PluginsManager {
     }
 
     fn remote_global_catalog_active(&self, config: &PluginsConfigInput) -> bool {
-        config.remote_plugin_enabled && self.auth_mode().is_some_and(AuthMode::uses_codex_backend)
+        // zcode-cli fork: never use the OpenAI remote catalog for GLM.
+        !config.uses_glm_provider()
+            && config.remote_plugin_enabled
+            && self.auth_mode().is_some_and(AuthMode::uses_codex_backend)
     }
 
     /// Starts the local curated marketplace sync when the remote catalog is unavailable.
@@ -579,7 +590,13 @@ impl PluginsManager {
         config: &PluginsConfigInput,
         on_effective_plugins_changed: Option<EffectivePluginsChangedCallback>,
     ) {
-        if config.plugins_enabled && !self.remote_global_catalog_active(config) {
+        // zcode-cli fork: the curated marketplace is synced from OpenAI's
+        // infrastructure (github.com/openai/plugins with a chatgpt.com
+        // fallback), so skip it for the GLM provider as well.
+        if config.plugins_enabled
+            && !config.uses_glm_provider()
+            && !self.remote_global_catalog_active(config)
+        {
             self.start_curated_repo_sync(
                 config.http_client_factory.clone(),
                 on_effective_plugins_changed,
@@ -1073,7 +1090,9 @@ impl PluginsManager {
         on_effective_plugins_changed: Option<EffectivePluginsChangedCallback>,
         change: EffectivePluginsChange,
     ) {
-        if !config.plugins_enabled {
+        // zcode-cli fork: remote plugin state lives on OpenAI's backend, so
+        // skip the refresh entirely for the GLM provider.
+        if !config.plugins_enabled || config.uses_glm_provider() {
             return;
         }
 
@@ -1094,7 +1113,9 @@ impl PluginsManager {
         auth: Option<CodexAuth>,
         on_effective_plugins_changed: Option<EffectivePluginsChangedCallback>,
     ) {
-        if !config.plugins_enabled {
+        // zcode-cli fork: remote plugin state lives on OpenAI's backend, so
+        // skip the sync entirely for the GLM provider.
+        if !config.plugins_enabled || config.uses_glm_provider() {
             return;
         }
 
@@ -1154,7 +1175,9 @@ impl PluginsManager {
         scopes: BTreeSet<RemotePluginScope>,
         mode: RemoteCatalogCacheRefreshMode,
     ) {
-        if !config.plugins_enabled || scopes.is_empty() {
+        // zcode-cli fork: the remote catalog lives on OpenAI's backend, so
+        // skip the refresh entirely for the GLM provider.
+        if !config.plugins_enabled || config.uses_glm_provider() || scopes.is_empty() {
             return;
         }
 
@@ -1246,7 +1269,9 @@ impl PluginsManager {
         config: &PluginsConfigInput,
         auth: Option<&CodexAuth>,
     ) -> Result<Vec<String>, RemotePluginFetchError> {
-        if !config.plugins_enabled {
+        // zcode-cli fork: featured plugins are served by OpenAI's backend, so
+        // skip the fetch entirely for the GLM provider.
+        if !config.plugins_enabled || config.uses_glm_provider() {
             return Ok(Vec::new());
         }
 
@@ -1279,6 +1304,8 @@ impl PluginsManager {
     ) -> RecommendedPluginsMode {
         if !config.plugins_enabled
             || !config.remote_plugin_enabled
+            // zcode-cli fork: recommended plugins come from OpenAI's backend.
+            || config.uses_glm_provider()
             || !auth.is_some_and(CodexAuth::uses_codex_backend)
         {
             return RecommendedPluginsMode::Legacy;

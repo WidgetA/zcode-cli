@@ -26,6 +26,8 @@ async fn contributes_hosted_plugin_runtime_without_an_executor() -> TestResult {
         .cli_overrides(vec![
             ("features.apps".to_string(), true.into()),
             ("chatgpt_base_url".to_string(), "https://chatgpt.com".into()),
+            // zcode-cli fork: Apps stay off for the default GLM provider.
+            ("model_provider".to_string(), "openai".into()),
         ])
         .build()
         .await?;
@@ -58,6 +60,8 @@ async fn runtime_overlay_preserves_disabled_server() -> TestResult {
                 "https://example.com/mcp".into(),
             ),
             ("mcp_servers.codex_apps.enabled".to_string(), false.into()),
+            // zcode-cli fork: Apps stay off for the default GLM provider.
+            ("model_provider".to_string(), "openai".into()),
         ])
         .build()
         .await?;
@@ -85,6 +89,8 @@ async fn default_fallback_overwrites_reserved_config_without_an_extension() -> T
                 "mcp_servers.codex_apps.url".to_string(),
                 "https://example.com/mcp".into(),
             ),
+            // zcode-cli fork: Apps stay off for the default GLM provider.
+            ("model_provider".to_string(), "openai".into()),
         ])
         .build()
         .await?;

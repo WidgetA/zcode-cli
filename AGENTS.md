@@ -13,6 +13,12 @@ Zhipu GLM (`glm`, https://open.bigmodel.cn/api/v1, env keys `ZHIPU_API_KEY` /
 - Upstream `just`/Bazel workflows were removed; CI (`.github/workflows/ci.yml`)
   uses plain cargo. References to `just` below describe upstream and may not
   work in this fork.
+- GLM-provider sessions must not call OpenAI-operated backends
+  (chatgpt.com, ab.chatgpt.com, api.openai.com). OpenAI-backed features
+  (codex_apps MCP, connectors, remote plugin catalog, curated marketplace
+  sync, analytics events, Statsig metrics) are gated off for the `glm`
+  provider; a stored `GLM_API_KEY` in auth.json resolves to `AuthMode::ApiKey`,
+  never `AuthMode::Chatgpt`.
 
 # Rust/codex-rs
 
