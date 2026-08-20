@@ -29,8 +29,7 @@ fn login_with_glm_api_key_saves_and_loads_key() {
     assert_eq!(stored, Some("glm-test-key".to_string()));
 
     // The key is persisted under the GLM_API_KEY field in auth.json.
-    let raw = std::fs::read_to_string(codex_home.path().join("auth.json"))
-        .expect("read auth.json");
+    let raw = std::fs::read_to_string(codex_home.path().join("auth.json")).expect("read auth.json");
     let json: serde_json::Value = serde_json::from_str(&raw).expect("parse auth.json");
     assert_eq!(json["GLM_API_KEY"], serde_json::json!("glm-test-key"));
 }

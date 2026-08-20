@@ -3227,6 +3227,53 @@ async fn codex_home_is_not_loaded_as_project_layer_from_home_dir() -> std::io::R
 }
 
 #[tokio::test]
+async fn legacy_dot_codex_next_to_dot_zcode_is_not_loaded_as_project_layer() -> std::io::Result<()>
+{
+    let tmp = tempdir()?;
+    let home_dir = tmp.path().join("home");
+    let codex_home = home_dir.join(".zcode");
+    let legacy_home = home_dir.join(".codex");
+    tokio::fs::create_dir_all(&codex_home).await?;
+    tokio::fs::create_dir_all(&legacy_home).await?;
+    tokio::fs::write(
+        codex_home.join(CONFIG_TOML_FILE),
+        r#"foo = "user"
+"#,
+    )
+    .await?;
+    tokio::fs::write(
+        legacy_home.join(CONFIG_TOML_FILE),
+        r#"foo = "legacy"
+"#,
+    )
+    .await?;
+
+    let cwd = AbsolutePathBuf::from_absolute_path(&home_dir)?;
+    let layers = load_config_layers_state(
+        LOCAL_FS.as_ref(),
+        &codex_home,
+        Some(cwd),
+        &[] as &[(String, TomlValue)],
+        LoaderOverrides::default(),
+        &codex_config::NoopThreadConfigLoader,
+    )
+    .await?;
+
+    let project_layers: Vec<_> = layers
+        .all_layers_high_to_low()
+        .filter(|layer| matches!(layer.name, ConfigLayerSource::Project { .. }))
+        .collect();
+    let expected: Vec<&ConfigLayerEntry> = Vec::new();
+    assert_eq!(expected, project_layers);
+    assert_eq!(
+        layers.effective_config().get("foo"),
+        Some(&TomlValue::String("user".to_string()))
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn codex_home_within_project_tree_is_not_double_loaded() -> std::io::Result<()> {
     let tmp = tempdir()?;
     let project_root = tmp.path().join("project");

@@ -1433,6 +1433,19 @@ async fn discover_project_layers(
     let codex_home_abs = AbsolutePathBuf::from_absolute_path(codex_home)?;
     let codex_home_normalized =
         normalize_path(codex_home_abs.as_path()).unwrap_or_else(|_| codex_home_abs.to_path_buf());
+    // `~/.codex` is the legacy user-level config home from upstream Codex.
+    // When zcode's own config home is the sibling `~/.zcode`, the legacy
+    // directory must not be picked up as a project layer during walk-up
+    // discovery (e.g. when cwd is anywhere under the home directory).
+    let legacy_codex_home_normalized =
+        if codex_home_abs.as_path().file_name() == Some(std::ffi::OsStr::new(".zcode")) {
+            codex_home_abs.as_path().parent().map(|parent| {
+                let legacy = parent.join(".codex");
+                normalize_path(&legacy).unwrap_or(legacy)
+            })
+        } else {
+            None
+        };
     let mut dirs = cwd
         .ancestors()
         .scan(false, |done, a| {
@@ -1467,7 +1480,10 @@ async fn discover_project_layers(
         let hooks_config_folder_override = trust_context.root_checkout_hooks_folder_for_dir(&dir);
         let dot_codex_normalized =
             normalize_path(dot_codex_abs.as_path()).unwrap_or_else(|_| dot_codex_abs.to_path_buf());
-        if dot_codex_abs == codex_home_abs || dot_codex_normalized == codex_home_normalized {
+        if dot_codex_abs == codex_home_abs
+            || dot_codex_normalized == codex_home_normalized
+            || legacy_codex_home_normalized.as_ref() == Some(&dot_codex_normalized)
+        {
             continue;
         }
         let config_file = dot_codex_abs.join(CONFIG_TOML_FILE);

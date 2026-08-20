@@ -20,18 +20,21 @@ pub fn login_with_glm_api_key(
     auth_credentials_store_mode: AuthCredentialsStoreMode,
     keyring_backend_kind: AuthKeyringBackendKind,
 ) -> std::io::Result<()> {
-    let mut auth_dot_json =
-        load_auth_dot_json(codex_home, auth_credentials_store_mode, keyring_backend_kind)?
-            .unwrap_or(AuthDotJson {
-                auth_mode: None,
-                openai_api_key: None,
-                tokens: None,
-                last_refresh: None,
-                agent_identity: None,
-                personal_access_token: None,
-                bedrock_api_key: None,
-                glm_api_key: None,
-            });
+    let mut auth_dot_json = load_auth_dot_json(
+        codex_home,
+        auth_credentials_store_mode,
+        keyring_backend_kind,
+    )?
+    .unwrap_or(AuthDotJson {
+        auth_mode: None,
+        openai_api_key: None,
+        tokens: None,
+        last_refresh: None,
+        agent_identity: None,
+        personal_access_token: None,
+        bedrock_api_key: None,
+        glm_api_key: None,
+    });
     auth_dot_json.glm_api_key = Some(api_key.to_string());
     save_auth(
         codex_home,
@@ -47,11 +50,13 @@ pub fn load_stored_glm_api_key(
     auth_credentials_store_mode: AuthCredentialsStoreMode,
     keyring_backend_kind: AuthKeyringBackendKind,
 ) -> std::io::Result<Option<String>> {
-    Ok(
-        load_auth_dot_json(codex_home, auth_credentials_store_mode, keyring_backend_kind)?
-            .and_then(|auth| auth.glm_api_key)
-            .filter(|api_key| !api_key.trim().is_empty()),
-    )
+    Ok(load_auth_dot_json(
+        codex_home,
+        auth_credentials_store_mode,
+        keyring_backend_kind,
+    )?
+    .and_then(|auth| auth.glm_api_key)
+    .filter(|api_key| !api_key.trim().is_empty()))
 }
 
 #[cfg(test)]
