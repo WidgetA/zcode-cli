@@ -5,6 +5,8 @@ use codex_protocol::openai_models::ModelInfo;
 use codex_protocol::openai_models::ModelMessages;
 use codex_protocol::openai_models::ModelVisibility;
 use codex_protocol::openai_models::ModelsResponse;
+use codex_protocol::openai_models::ReasoningEffort;
+use codex_protocol::openai_models::ReasoningEffortPreset;
 use codex_protocol::openai_models::TruncationPolicyConfig;
 use codex_protocol::openai_models::WebSearchToolType;
 use codex_protocol::openai_models::default_input_modalities;
@@ -50,7 +52,14 @@ fn glm_model(slug: &str, display_name: &str, priority: i32, context_window: i64)
         display_name: display_name.to_string(),
         description: None,
         default_reasoning_level: None,
-        supported_reasoning_levels: Vec::new(),
+        // Exactly one supported effort: the GLM wire protocol has no effort
+        // knob, so the picker applies the selection directly instead of
+        // opening a reasoning-level submenu. An empty list breaks the
+        // picker's dismiss flow (the menu never closes after Enter).
+        supported_reasoning_levels: vec![ReasoningEffortPreset {
+            effort: ReasoningEffort::None,
+            description: "No reasoning".to_string(),
+        }],
         shell_type: ConfigShellToolType::Default,
         visibility: ModelVisibility::List,
         supported_in_api: true,

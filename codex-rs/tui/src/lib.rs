@@ -972,8 +972,6 @@ async fn run_ratatui_app(
     let workload_identity_selected = is_workload_identity_selected();
     color_eyre::install()?;
 
-    tooltips::announcement::prewarm(initial_config.http_client_factory());
-
     // Forward panic reports through tracing so they appear in the UI status
     // line, but do not swallow the default/color-eyre panic handler.
     // Chain to the previous hook so users still get a rich panic report

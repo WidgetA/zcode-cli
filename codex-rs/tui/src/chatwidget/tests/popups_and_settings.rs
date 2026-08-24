@@ -3850,6 +3850,90 @@ async fn auto_model_advertising_advanced_effort_opens_reasoning_picker() {
 }
 
 #[tokio::test]
+async fn model_popup_dismisses_after_selecting_single_effort_model() {
+    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.thread_id = Some(ThreadId::new());
+    // Mirrors the GLM catalog: a non-auto model with exactly one supported
+    // reasoning effort must apply immediately and close the picker.
+    let mut preset = get_available_model(&chat, "gpt-5.4");
+    preset.id = "glm-5.3".to_string();
+    preset.model = "glm-5.3".to_string();
+    preset.display_name = "glm-5.3".to_string();
+    preset.show_in_picker = true;
+    preset.default_reasoning_effort = ReasoningEffortConfig::None;
+    preset.supported_reasoning_efforts = vec![ReasoningEffortPreset {
+        effort: ReasoningEffortConfig::None,
+        description: "No reasoning".to_string(),
+    }];
+    chat.open_model_popup_with_presets(vec![preset]);
+    assert!(render_bottom_popup(&chat, /*width*/ 80).contains("Select Model"));
+
+    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+
+    // The app dispatches OpenReasoningPopup back into the chat widget.
+    for event in std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>() {
+        if let AppEvent::OpenReasoningPopup { model } = event {
+            chat.open_reasoning_popup(model);
+        }
+    }
+
+    let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, AppEvent::UpdateModel(model) if model == "glm-5.3"))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, AppEvent::PersistModelSelection { .. }))
+    );
+    let popup = render_bottom_popup(&chat, /*width*/ 80);
+    assert!(
+        !popup.contains("Select Model"),
+        "picker stayed open: {popup}"
+    );
+    assert!(!popup.contains("Select Reasoning Level"));
+}
+
+#[tokio::test]
+async fn model_popup_dismisses_after_selecting_model_without_effort_options() {
+    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.thread_id = Some(ThreadId::new());
+    // Defensive: a catalog entry with zero supported efforts must not trap
+    // the user in a picker that never closes (the original GLM bug).
+    let mut preset = get_available_model(&chat, "gpt-5.4");
+    preset.id = "no-effort-model".to_string();
+    preset.model = "no-effort-model".to_string();
+    preset.display_name = "no-effort-model".to_string();
+    preset.show_in_picker = true;
+    preset.default_reasoning_effort = ReasoningEffortConfig::None;
+    preset.supported_reasoning_efforts = Vec::new();
+    chat.open_model_popup_with_presets(vec![preset]);
+    assert!(render_bottom_popup(&chat, /*width*/ 80).contains("Select Model"));
+
+    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+
+    for event in std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>() {
+        if let AppEvent::OpenReasoningPopup { model } = event {
+            chat.open_reasoning_popup(model);
+        }
+    }
+
+    let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
+    assert!(
+        events.iter().any(
+            |event| matches!(event, AppEvent::UpdateModel(model) if model == "no-effort-model")
+        )
+    );
+    let popup = render_bottom_popup(&chat, /*width*/ 80);
+    assert!(
+        !popup.contains("Select Model"),
+        "picker stayed open: {popup}"
+    );
+}
+
+#[tokio::test]
 async fn feedback_selection_popup_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
     // Feedback is opt-in in zcode-cli; enable it for this popup test.

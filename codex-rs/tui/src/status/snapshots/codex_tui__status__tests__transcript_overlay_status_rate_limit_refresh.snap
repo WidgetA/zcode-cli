@@ -1,5 +1,6 @@
 ---
 source: tui/src/status/tests.rs
+assertion_line: 1819
 expression: "format!(\"before:\\n{before}\\n\\nafter:\\n{after}\")"
 ---
 before:
@@ -7,7 +8,7 @@ before:
 /status
 
 ╭─────────────────────────────────────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.1.0)                                                   │
+│  >_ OpenAI Codex (v0.2.3)                                                   │
 │                                                                             │
 │  Model:            gpt-5.1-codex-max (reasoning none, summaries auto)       │
 │  Model provider:   GLM (Zhipu)                                              │
@@ -39,7 +40,7 @@ after:
 /status
 
 ╭─────────────────────────────────────────────────────────────────────────────╮
-│  >_ OpenAI Codex (v0.1.0)                                                   │
+│  >_ OpenAI Codex (v0.2.3)                                                   │
 │                                                                             │
 │  Model:            gpt-5.1-codex-max (reasoning none, summaries auto)       │
 │  Model provider:   GLM (Zhipu)                                              │
