@@ -47,7 +47,7 @@ jobs:
           cp "codex-rs/target/${{ matrix.target }}/release/${{ matrix.bin }}" dist/
           cd dist
           tar -czf "${{ matrix.asset }}.tar.gz" "${{ matrix.bin }}"
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/${{ matrix.asset }}.tar.gz
           generate_release_notes: true
